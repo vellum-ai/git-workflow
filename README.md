@@ -1,6 +1,10 @@
 # Git Workflow Plugin for Vellum
 
-A Vellum plugin that wraps `git` and `gh` (GitHub CLI) into structured tools the assistant can call, plus a multi-perspective code review skill that spawns parallel subagents. Built for Developer/Builders: branch management, commits, PRs, code review, diffs, logs, and changelog generation.
+[![CI](https://github.com/vellum-ai/git-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/vellum-ai/git-workflow/actions/workflows/ci.yml)
+
+A Vellum plugin that wraps `git` and `gh` (GitHub CLI) into structured tools the assistant can call, plus a multi-perspective code review skill that spawns parallel subagents. Built for Developer/Builders: branch management, commits, push, stash, PRs, code review, diffs, logs, and changelog generation.
+
+It uses all three Vellum plugin surfaces — **tools** (15 git/gh operations), **skills** (workflow patterns + multi-agent code review), and a lifecycle **hook**.
 
 ## Tools
 
@@ -65,6 +69,25 @@ Developers are already running git commands through bash. This plugin gives the 
 - **Formatted output** that is clean and parseable rather than raw CLI noise
 - **Multi-perspective code review** with parallel subagents and confidence scoring, not just a single-pass diff read
 - **Two skills** that teach the assistant the right workflow patterns (git operations + code review)
+
+## Project structure
+
+```
+git-workflow/
+├── tools/                  # one ToolDefinition per file (default export)
+│   ├── git-status.ts  git-diff.ts  git-log.ts  git-branch.ts
+│   ├── git-commit.ts  git-push.ts  git-stash.ts
+│   ├── pr-create.ts   pr-list.ts   pr-review.ts  pr-review-gather.ts
+│   └── pr-checkout.ts pr-comment.ts pr-merge.ts  changelog.ts
+├── skills/
+│   ├── git-workflow/SKILL.md   # git/PR workflow patterns
+│   └── code-review/SKILL.md    # parallel-subagent code review
+├── hooks/
+│   └── post-tool-use.ts        # default-branch safety nudge
+├── src/runner.ts               # shared git/gh command runner + helpers
+├── tests/                      # node:test unit tests
+└── .github/workflows/ci.yml    # test + typecheck on push/PR
+```
 
 ## Development
 
