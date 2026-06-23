@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run tests
+        # Node 22 strips TypeScript types at runtime, so the .ts test files and
+        # their .ts import specifiers run without a build step.
+        run: node --experimental-strip-types --test "tests/**/*.test.ts"
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dev deps
+        run: npm install --no-save typescript @vellumai/plugin-api
+
+      - name: Typecheck
+        run: npx tsc --noEmit

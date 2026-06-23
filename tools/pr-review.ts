@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
-import { runGh, runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
+import { runGh, formatResult, resolveCwd, ok } from "../src/runner.ts";
 
 const prReview: ToolDefinition = {
   description:

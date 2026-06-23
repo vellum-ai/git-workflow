@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
-import { runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
+import { runGit, formatResult, resolveCwd, ok, assertGitRepo } from "../src/runner.ts";
 
 const gitCommit: ToolDefinition = {
   description:
@@ -32,6 +32,8 @@ const gitCommit: ToolDefinition = {
   defaultRiskLevel: "medium",
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
+    const repoErr = await assertGitRepo(cwd, ctx.signal);
+    if (repoErr) return { content: repoErr, isError: true };
     const msg = input.message as string;
     if (!msg || msg.trim().length === 0) {
       return { content: "Error: commit message is required.", isError: true };

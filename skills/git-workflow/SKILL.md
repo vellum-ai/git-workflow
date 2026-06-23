@@ -39,11 +39,14 @@ This skill provides structured tools for common git and GitHub operations. The t
 | `git_status` | Show working tree status | low |
 | `git_diff` | Show changes between refs/working tree | low |
 | `git_log` | Show commit history | low |
-| `git_branch` | List, create, switch, delete branches | medium |
+| `git_branch` | List, create, switch, delete branches (safe/force) | medium |
 | `git_commit` | Stage files and commit | medium |
+| `git_push` | Push current/named branch with upstream tracking | high |
+| `git_stash` | Save, list, apply, pop, or drop stashed changes | medium |
 | `pr_create` | Open a GitHub pull request | high |
 | `pr_list` | List pull requests | low |
 | `pr_review` | Fetch PR metadata, CI status, and diff | low |
+| `pr_checkout` | Check out a PR branch locally | medium |
 | `pr_merge` | Merge a pull request | high |
 | `pr_review_gather` | Deep context gather for code review (diff, blame, CI, conventions) | low |
 | `pr_comment` | Post a comment on a PR | high |
@@ -61,8 +64,9 @@ This skill provides structured tools for common git and GitHub operations. The t
 1. `git_branch` (create) to make a feature branch.
 2. `git_commit` to save changes.
 3. `git_log` to verify the commit history looks right.
-4. Confirm PR title and body with the user.
-5. `pr_create` with title, body, and optional reviewers/labels.
+4. `git_push` to publish the branch to the remote (required before `pr_create` can open a PR from an unpushed branch).
+5. Confirm PR title and body with the user.
+6. `pr_create` with title, body, and optional reviewers/labels.
 
 ### PR review flow
 1. `pr_list` to see open PRs.

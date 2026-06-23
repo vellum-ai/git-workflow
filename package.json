@@ -1,9 +1,40 @@
 {
   "name": "@marinatrajk/git-workflow",
-  "version": "0.2.0",
-  "description": "Git workflow tools and multi-perspective code review for Vellum: branch management, PR creation/review/merge, diffs, logs, changelog generation, and parallel subagent code review.",
+  "version": "0.3.0",
+  "description": "Git workflow tools and multi-perspective code review for Vellum: branch management, PR creation/review/merge, push, stash, diffs, logs, changelog generation, and parallel subagent code review.",
   "license": "MIT",
+  "type": "module",
+  "author": "Marina Trajkovska <marina@vellum.ai>",
+  "homepage": "https://github.com/vellum-ai/git-workflow#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vellum-ai/git-workflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vellum-ai/git-workflow/issues"
+  },
+  "keywords": [
+    "vellum",
+    "vellum-plugin",
+    "git",
+    "github",
+    "gh-cli",
+    "pull-request",
+    "code-review",
+    "changelog"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
   "peerDependencies": {
     "@vellumai/plugin-api": "^0.8.0"
+  },
+  "devDependencies": {
+    "@vellumai/plugin-api": "^0.8.0",
+    "typescript": "^5.6.0"
   }
 }

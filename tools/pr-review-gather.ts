@@ -1,6 +1,42 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
 import { runGh, runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
 
+/**
+ * Summarize `git blame --line-porcelain` output into contiguous authorship
+ * groups with real line ranges. Returns at most `maxGroups` lines like
+ * "  L10-24: Ada Lovelace - Initial commit".
+ */
+export function summarizeBlame(porcelain: string, maxGroups = 10): string[] {
+  const lines = porcelain.split("\n");
+  const shaInfo: Record<string, { author: string; summary: string }> = {};
+  const groups: { start: number; end: number; sha: string }[] = [];
+  let curSha = "";
+  for (let i = 0; i < lines.length; i++) {
+    // Header line: "<40-hex-sha> <orig-line> <final-line> [group-size]"
+    const header = lines[i].match(/^([0-9a-f]{40}) \d+ (\d+)/);
+    if (header) {
+      curSha = header[1];
+      const finalLine = parseInt(header[2], 10);
+      if (!shaInfo[curSha]) shaInfo[curSha] = { author: "", summary: "" };
+      const last = groups[groups.length - 1];
+      if (last && last.sha === curSha && finalLine === last.end + 1) {
+        last.end = finalLine;
+      } else {
+        groups.push({ start: finalLine, end: finalLine, sha: curSha });
+      }
+    } else if (lines[i].startsWith("author ") && curSha) {
+      shaInfo[curSha].author = lines[i].slice("author ".length);
+    } else if (lines[i].startsWith("summary ") && curSha) {
+      shaInfo[curSha].summary = lines[i].slice("summary ".length);
+    }
+  }
+  return groups.slice(0, maxGroups).map((g) => {
+    const info = shaInfo[g.sha] ?? { author: "?", summary: "" };
+    const range = g.start === g.end ? `L${g.start}` : `L${g.start}-${g.end}`;
+    return `  ${range}: ${info.author || "?"} - ${info.summary}`;
+  });
+}
+
 const prReviewGather: ToolDefinition = {
   description:
     "Gather all context needed for a deep code review of a PR: full diff, " +
@@ -35,13 +71,22 @@ const prReviewGather: ToolDefinition = {
     const cwd = resolveCwd(input, ctx.workingDir);
     const num = input.number as number;
     const maxDiff = (input.max_diff_chars as number) ?? 30000;
+    const signal = ctx.signal;
 
-    // 1. PR metadata
-    const metaResult = await runGh(
-      ["pr", "view", String(num), "--json",
-        "title,body,state,isDraft,author,baseRefName,headRefName,additions,deletions,changedFiles,commits,labels,reviews"],
-      { cwd, signal: ctx.signal },
-    );
+    // Fire all independent gh calls concurrently; they don't depend on each other.
+    const [metaResult, checksResult, diffResult, filesResult, commentsResult] =
+      await Promise.all([
+        runGh(
+          ["pr", "view", String(num), "--json",
+            "title,body,state,isDraft,author,baseRefName,headRefName,additions,deletions,changedFiles,commits,labels,reviews"],
+          { cwd, signal },
+        ),
+        runGh(["pr", "checks", String(num)], { cwd, signal }),
+        runGh(["pr", "diff", String(num)], { cwd, signal }),
+        runGh(["pr", "view", String(num), "--json", "files", "--jq", ".files[].path"], { cwd, signal }),
+        runGh(["pr", "view", String(num), "--json", "comments", "--jq", ".comments[].body"], { cwd, signal }),
+      ]);
+
     if (!ok(metaResult)) {
       return { content: `Failed to fetch PR #${num}:\n${formatResult(metaResult)}`, isError: true };
     }
@@ -59,18 +104,8 @@ const prReviewGather: ToolDefinition = {
       if (hasReview) skipReasons.push("PR already has reviews");
     }
 
-    // 2. CI checks
-    const checksResult = await runGh(
-      ["pr", "checks", String(num)],
-      { cwd, signal: ctx.signal },
-    );
     const checks = ok(checksResult) ? checksResult.stdout.trim() : "(CI checks not available)";
 
-    // 3. Full diff
-    const diffResult = await runGh(
-      ["pr", "diff", String(num)],
-      { cwd, signal: ctx.signal },
-    );
     let diff = "";
     let diffTruncated = false;
     if (ok(diffResult)) {
@@ -81,51 +116,35 @@ const prReviewGather: ToolDefinition = {
       }
     }
 
-    // 4. Changed files list
-    const filesResult = await runGh(
-      ["pr", "view", String(num), "--json", "files", "--jq", ".files[].path"],
-      { cwd, signal: ctx.signal },
-    );
     const changedFiles = ok(filesResult)
       ? filesResult.stdout.trim().split("\n").filter((f) => f.length > 0)
       : [];
 
-    // 5. Git blame for changed files (top 5 files, first 100 lines each)
+    // Git blame for the top changed files (depends on changedFiles above).
     let blameSection = "";
     if (input.include_blame !== false && changedFiles.length > 0) {
       const blameFiles = changedFiles.slice(0, 5);
+      const blameResults = await Promise.all(
+        blameFiles.map((file) =>
+          runGit(["blame", "--line-porcelain", "--", file], { cwd, signal }),
+        ),
+      );
       const blameParts: string[] = [];
-      for (const file of blameFiles) {
-        const blameResult = await runGit(
-          ["blame", "--line-porcelain", "--", file],
-          { cwd, signal: ctx.signal },
-        );
+      blameFiles.forEach((file, idx) => {
+        const blameResult = blameResults[idx];
         if (ok(blameResult)) {
-          // Extract just author + first line of each blame hunk
-          const lines = blameResult.stdout.split("\n");
-          const summary: string[] = [];
-          let currentAuthor = "";
-          let lineStart = 0;
-          let lineEnd = 0;
-          for (let i = 0; i < Math.min(lines.length, 200); i++) {
-            if (lines[i].startsWith("author ")) {
-              currentAuthor = lines[i].replace("author ", "");
-            }
-            if (lines[i].startsWith("summary ")) {
-              summary.push(`  L${lineStart}-${lineEnd}: ${currentAuthor} - ${lines[i].replace("summary ", "")}`);
-            }
-          }
+          const summary = summarizeBlame(blameResult.stdout);
           if (summary.length > 0) {
-            blameParts.push(`### ${file}\n${summary.slice(0, 10).join("\n")}`);
+            blameParts.push(`### ${file}\n${summary.join("\n")}`);
           }
         }
-      }
+      });
       blameSection = blameParts.length > 0
         ? `\n\n## Git Blame (top ${blameFiles.length} changed files)\n\n${blameParts.join("\n\n")}`
         : "";
     }
 
-    // 6. Repo convention/guideline files
+    // Repo convention/guideline files
     const conventionFiles = [
       "AGENTS.md",
       "CLAUDE.md",
@@ -153,11 +172,7 @@ const prReviewGather: ToolDefinition = {
       ? `\n\n## Repo Guidelines & Conventions\n\n${conventions.join("\n\n")}`
       : "\n\n## Repo Guidelines & Conventions\n\n(No AGENTS.md, CLAUDE.md, or convention files found)";
 
-    // 7. Existing PR comments
-    const commentsResult = await runGh(
-      ["pr", "view", String(num), "--json", "comments", "--jq", ".comments[].body"],
-      { cwd, signal: ctx.signal },
-    );
+    // Existing PR comments (fetched up front in the Promise.all above)
     const existingComments = ok(commentsResult) && commentsResult.stdout.trim()
       ? commentsResult.stdout.trim()
       : "(no existing comments)";

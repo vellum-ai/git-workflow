@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
-import { runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
+import { runGit, formatResult, resolveCwd, assertGitRepo } from "../src/runner.ts";
 
 const gitBranch: ToolDefinition = {
   description:
@@ -25,12 +25,20 @@ const gitBranch: ToolDefinition = {
         type: "string",
         description: "Base branch to create from (for 'create' action). Defaults to current branch.",
       },
+      force: {
+        type: "boolean",
+        description:
+          "For 'delete': force-delete an unmerged branch (git branch -D). " +
+          "Without this, deleting an unmerged branch fails safely. Default false.",
+      },
     },
     required: ["action"],
   },
   defaultRiskLevel: "medium",
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
+    const repoErr = await assertGitRepo(cwd, ctx.signal);
+    if (repoErr) return { content: repoErr, isError: true };
     const action = input.action as string;
 
     if (action === "list") {
@@ -60,7 +68,8 @@ const gitBranch: ToolDefinition = {
       if (!input.name) {
         return { content: "Error: 'name' is required for delete action.", isError: true };
       }
-      const result = await runGit(["branch", "-d", input.name as string], { cwd, signal: ctx.signal });
+      const deleteFlag = input.force ? "-D" : "-d";
+      const result = await runGit(["branch", deleteFlag, input.name as string], { cwd, signal: ctx.signal });
       return { content: formatResult(result), isError: result.exitCode !== 0 };
     }
 

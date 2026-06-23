@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
-import { runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
+import { runGit, formatResult, resolveCwd, ok, assertGitRepo } from "../src/runner.ts";
 
 const changelog: ToolDefinition = {
   description:
@@ -30,21 +30,42 @@ const changelog: ToolDefinition = {
   defaultRiskLevel: "low",
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
-
-    // Determine from-ref: explicit, or auto-detect previous tag
-    let fromRef = input.from as string | undefined;
-    if (!fromRef) {
-      const tagResult = await runGit(["describe", "--tags", "--abbrev=0", "HEAD~1"], { cwd, signal: ctx.signal });
-      if (ok(tagResult)) {
-        fromRef = tagResult.stdout.trim();
-      } else {
-        // Fallback: use first commit or HEAD~10
-        const fallbackResult = await runGit(["rev-list", "--max-parents=0", "HEAD"], { cwd, signal: ctx.signal });
-        fromRef = ok(fallbackResult) ? fallbackResult.stdout.trim().split("\n")[0] : "HEAD~10";
-      }
-    }
+    const repoErr = await assertGitRepo(cwd, ctx.signal);
+    if (repoErr) return { content: repoErr, isError: true };
 
     const toRef = (input.to as string) ?? "HEAD";
+
+    // Determine from-ref: explicit, or auto-detect the most recent tag that
+    // precedes `toRef`. Prefer the tag strictly before toRef so a changelog
+    // generated *at* a release tag spans back to the previous release.
+    let fromRef = input.from as string | undefined;
+    if (!fromRef) {
+      // Most recent tag before toRef (excludes a tag pointing at toRef itself).
+      const prevTag = await runGit(
+        ["describe", "--tags", "--abbrev=0", `${toRef}^`],
+        { cwd, signal: ctx.signal },
+      );
+      if (ok(prevTag) && prevTag.stdout.trim()) {
+        fromRef = prevTag.stdout.trim();
+      } else {
+        // No earlier tag: try any tag reachable from toRef, else the root commit.
+        const anyTag = await runGit(
+          ["describe", "--tags", "--abbrev=0", toRef],
+          { cwd, signal: ctx.signal },
+        );
+        if (ok(anyTag) && anyTag.stdout.trim()) {
+          fromRef = anyTag.stdout.trim();
+        } else {
+          const rootResult = await runGit(
+            ["rev-list", "--max-parents=0", toRef],
+            { cwd, signal: ctx.signal },
+          );
+          fromRef = ok(rootResult) && rootResult.stdout.trim()
+            ? rootResult.stdout.trim().split("\n")[0]
+            : toRef;
+        }
+      }
+    }
 
     // Get commit log between refs
     const formatStr = (input.format as string) ?? "markdown";

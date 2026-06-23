@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
-import { runGit, formatResult, resolveCwd } from "../src/runner.ts";
+import { runGit, formatResult, resolveCwd, assertGitRepo } from "../src/runner.ts";
 
 const gitLog: ToolDefinition = {
   description:
@@ -37,6 +37,8 @@ const gitLog: ToolDefinition = {
   defaultRiskLevel: "low",
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
+    const repoErr = await assertGitRepo(cwd, ctx.signal);
+    if (repoErr) return { content: repoErr, isError: true };
     const args = ["log"];
     if (input.oneline) args.push("--oneline");
     args.push(`-${input.count ?? 20}`);

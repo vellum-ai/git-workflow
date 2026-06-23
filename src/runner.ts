@@ -101,3 +101,23 @@ export function resolveCwd(
   const p = input.repo_path as string | undefined;
   return p && p.length > 0 ? p : fallback;
 }
+
+/**
+ * Preflight check that `cwd` is inside a git work tree.
+ * Returns a friendly error message string if it is not, or null if it is.
+ * Tools should call this before running git and short-circuit on a non-null
+ * result so users get a clear message instead of a raw `fatal:` from git.
+ */
+export async function assertGitRepo(
+  cwd: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const r = await runGit(["rev-parse", "--is-inside-work-tree"], { cwd, signal });
+  if (!ok(r) || r.stdout.trim() !== "true") {
+    return (
+      `Not a git repository: ${cwd}\n` +
+      `Run 'git init' here, or pass repo_path pointing at a git repository.`
+    );
+  }
+  return null;
+}
