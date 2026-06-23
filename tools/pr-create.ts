@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
+import { RiskLevel } from "@vellumai/plugin-api";
 import { runGh, formatResult, resolveCwd } from "../src/runner.ts";
 
 const prCreate: ToolDefinition = {
@@ -46,7 +47,7 @@ const prCreate: ToolDefinition = {
     },
     required: ["title"],
   },
-  defaultRiskLevel: "high",
+  defaultRiskLevel: RiskLevel.High,
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
     const title = input.title as string;

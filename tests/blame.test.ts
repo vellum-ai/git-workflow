@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { summarizeBlame } from "../tools/pr-review-gather.ts";
+import { summarizeBlame } from "../src/blame.ts";
 
 // A minimal `git blame --line-porcelain` fixture: two commits, the first
 // owning lines 1-2 and the second owning line 3.

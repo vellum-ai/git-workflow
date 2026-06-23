@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
+import { RiskLevel } from "@vellumai/plugin-api";
 import { runGit, formatResult, resolveCwd, assertGitRepo } from "../src/runner.ts";
 
 const gitDiff: ToolDefinition = {
@@ -35,7 +36,7 @@ const gitDiff: ToolDefinition = {
       },
     },
   },
-  defaultRiskLevel: "low",
+  defaultRiskLevel: RiskLevel.Low,
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
     const repoErr = await assertGitRepo(cwd, ctx.signal);
@@ -47,7 +48,7 @@ const gitDiff: ToolDefinition = {
       if (input.ref_b) {
         args.push(`${input.ref_a}..${input.ref_b}`);
       } else {
-        args.push(input.ref_a);
+        args.push(input.ref_a as string);
       }
     }
     if (input.paths && Array.isArray(input.paths)) {

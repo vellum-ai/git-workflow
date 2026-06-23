@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
+import { RiskLevel } from "@vellumai/plugin-api";
 import { runGit, formatResult, resolveCwd, ok, assertGitRepo } from "../src/runner.ts";
 
 const changelog: ToolDefinition = {
@@ -27,7 +28,7 @@ const changelog: ToolDefinition = {
       },
     },
   },
-  defaultRiskLevel: "low",
+  defaultRiskLevel: RiskLevel.Low,
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
     const repoErr = await assertGitRepo(cwd, ctx.signal);

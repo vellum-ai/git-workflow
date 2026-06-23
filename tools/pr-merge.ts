@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
+import { RiskLevel } from "@vellumai/plugin-api";
 import { runGh, formatResult, resolveCwd } from "../src/runner.ts";
 
 const prMerge: ToolDefinition = {
@@ -34,7 +35,7 @@ const prMerge: ToolDefinition = {
     },
     required: ["number"],
   },
-  defaultRiskLevel: "high",
+  defaultRiskLevel: RiskLevel.High,
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
     const num = input.number as number;

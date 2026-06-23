@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@vellumai/plugin-api";
+import { RiskLevel } from "@vellumai/plugin-api";
 import { runGh, formatResult, resolveCwd, ok } from "../src/runner.ts";
 
 const prReview: ToolDefinition = {
@@ -23,7 +24,7 @@ const prReview: ToolDefinition = {
     },
     required: ["number"],
   },
-  defaultRiskLevel: "low",
+  defaultRiskLevel: RiskLevel.Low,
   execute: async (input, ctx) => {
     const cwd = resolveCwd(input, ctx.workingDir);
     const num = input.number as number;

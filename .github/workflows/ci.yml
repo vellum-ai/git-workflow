@@ -32,7 +32,7 @@ jobs:
           node-version: "22"
 
       - name: Install dev deps
-        run: npm install --no-save typescript @vellumai/plugin-api
+        run: npm install --no-save typescript @vellumai/plugin-api @types/node
 
       - name: Typecheck
         run: npx tsc --noEmit
