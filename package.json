@@ -1,7 +1,7 @@
 {
   "name": "@marinatrajk/git-workflow",
-  "version": "0.1.0",
-  "description": "Git workflow tools for Vellum: branch management, PR creation/review/merge, diffs, logs, and changelog generation.",
+  "version": "0.2.0",
+  "description": "Git workflow tools and multi-perspective code review for Vellum: branch management, PR creation/review/merge, diffs, logs, changelog generation, and parallel subagent code review.",
   "license": "MIT",
   "peerDependencies": {
     "@vellumai/plugin-api": "^0.8.0"

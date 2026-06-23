@@ -16,6 +16,7 @@ metadata:
       - "User asks to create, switch, list, or delete a git branch"
       - "User asks for git status, diff, or log"
       - "User asks for a changelog or release notes from commits"
+      - "User asks for a code review of a PR (loads the code-review skill)"
     avoid-when:
       - "User wants to resolve merge conflicts manually (guide them, do not auto-resolve)"
       - "User wants to rebase or do force-push (not supported by this skill's tools)"
@@ -44,6 +45,8 @@ This skill provides structured tools for common git and GitHub operations. The t
 | `pr_list` | List pull requests | low |
 | `pr_review` | Fetch PR metadata, CI status, and diff | low |
 | `pr_merge` | Merge a pull request | high |
+| `pr_review_gather` | Deep context gather for code review (diff, blame, CI, conventions) | low |
+| `pr_comment` | Post a comment on a PR | high |
 | `changelog` | Generate changelog from commit history | low |
 
 ## Workflow Patterns
@@ -66,9 +69,26 @@ This skill provides structured tools for common git and GitHub operations. The t
 2. `pr_review` on a specific PR number to get metadata + CI + diff.
 3. Summarize the changes for the user and flag any CI failures or concerns.
 
+### Code review flow
+1. `pr_review_gather` on a PR number to get the full context bundle.
+2. The `code-review` skill (loaded automatically) orchestrates parallel subagents for multi-perspective review.
+3. Findings are scored for confidence, filtered to >= 80, and presented to the user.
+4. If approved, `pr_comment` posts the review as a PR comment.
+
 ### Release/changelog flow
 1. `changelog` with `from` and `to` refs (or let it auto-detect the previous tag).
 2. Use the output as-is for release notes, or ask the assistant to polish it.
+
+## Code Review Skill
+
+This plugin also ships a `code-review` skill that orchestrates deep multi-perspective PR reviews using parallel subagents. When the user asks for a code review, the assistant loads the `code-review` skill which:
+
+1. Calls `pr_review_gather` to collect diff, CI, blame, conventions, and comments
+2. Spawns 3 parallel subagents (convention compliance, bug detection, history context)
+3. Scores findings 0-100 and filters to confidence >= 80
+4. Presents results for approval, then posts via `pr_comment`
+
+This mirrors the approach of Claude's code-review plugin: parallel agents, confidence scoring, low false-positive rate.
 
 ## Rules
 
