@@ -1,6 +1,6 @@
 # Git Workflow Plugin for Vellum
 
-A Vellum plugin that wraps `git` and `gh` (GitHub CLI) into structured tools the assistant can call, plus a multi-perspective code review skill that spawns parallel subagents. Built for the Developer/Builder persona: branch management, commits, PRs, code review, diffs, logs, and changelog generation.
+A Vellum plugin that wraps `git` and `gh` (GitHub CLI) into structured tools the assistant can call, plus a multi-perspective code review skill that spawns parallel subagents. Built for Developer/Builders: branch management, commits, PRs, code review, diffs, logs, and changelog generation.
 
 ## Tools
 
