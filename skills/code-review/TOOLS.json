@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "pr_comment",
+      "description": "Post a comment on a GitHub pull request using gh CLI. Use when the user asks to post a review comment, add feedback to a PR, or share review results on GitHub. WARNING: This is a public action visible to all repo collaborators. The assistant should confirm the comment content with the user before posting.",
+      "category": "git",
+      "risk": "high",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "number": {
+            "type": "number",
+            "description": "PR number to comment on. Required."
+          },
+          "body": {
+            "type": "string",
+            "description": "Comment body (markdown). Required. Can be multi-line."
+          }
+        },
+        "required": [
+          "number",
+          "body"
+        ]
+      },
+      "executor": "tools/pr-comment.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_review_gather",
+      "description": "Gather all context needed for a deep code review of a PR: full diff, CI check status, existing review comments, git blame for changed files, and repo convention/guideline files (AGENTS.md, CLAUDE.md, .cursorrules, CONTRIBUTING.md). Use when the user asks for a code review, wants to review a PR deeply, or when running the code-review workflow.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "number": {
+            "type": "number",
+            "description": "PR number to review. Required."
+          },
+          "max_diff_chars": {
+            "type": "number",
+            "description": "Maximum diff size to return (characters). Default 30000. Larger diffs are truncated."
+          },
+          "include_blame": {
+            "type": "boolean",
+            "description": "Include git blame for changed files. Default true."
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "executor": "tools/pr-review-gather.ts",
+      "execution_target": "sandbox"
+    }
+  ]
+}

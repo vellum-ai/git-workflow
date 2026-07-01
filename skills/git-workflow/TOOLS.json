@@ -1,0 +1,480 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "changelog",
+      "description": "Generate a changelog from git commit history between two refs. Use when the user asks for release notes, a changelog, or a summary of changes between tags/branches.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "from": {
+            "type": "string",
+            "description": "Starting ref (tag, branch, commit). Default: previous tag."
+          },
+          "to": {
+            "type": "string",
+            "description": "Ending ref (tag, branch, commit). Default: HEAD."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "plain",
+              "json"
+            ],
+            "description": "Output format. Default 'markdown'."
+          }
+        }
+      },
+      "executor": "tools/changelog.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_branch",
+      "description": "Git branch management: list, create, switch, or delete branches. Use when the user asks to list branches, create a new branch, checkout/switch, or delete a branch.",
+      "category": "git",
+      "risk": "medium",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "list",
+              "create",
+              "switch",
+              "delete"
+            ],
+            "description": "What to do: list branches, create a new one, switch to one, or delete one."
+          },
+          "name": {
+            "type": "string",
+            "description": "Branch name (required for create, switch, delete)."
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch to create from (for 'create' action). Defaults to current branch."
+          },
+          "force": {
+            "type": "boolean",
+            "description": "For 'delete': force-delete an unmerged branch (git branch -D). Without this, deleting an unmerged branch fails safely. Default false."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "executor": "tools/git-branch.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_commit",
+      "description": "Stage files and create a git commit. Use when the user asks to commit changes, stage files, or save work. WARNING: This modifies the repository. The assistant should confirm the commit message with the user before calling.",
+      "category": "git",
+      "risk": "medium",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "message": {
+            "type": "string",
+            "description": "Commit message. Required."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specific files to stage. If omitted, stages all changes (git add -A)."
+          },
+          "amend": {
+            "type": "boolean",
+            "description": "Amend the previous commit instead of creating a new one."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "executor": "tools/git-commit.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_diff",
+      "description": "Show git diff: changes between commits, working tree, and staged area. Use when the user asks to see a diff, review changes, or compare branches.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "staged": {
+            "type": "boolean",
+            "description": "Show only staged (cached) changes. Equivalent to --cached."
+          },
+          "ref_a": {
+            "type": "string",
+            "description": "First ref (branch, commit, tag) to compare. If omitted, shows working tree changes."
+          },
+          "ref_b": {
+            "type": "string",
+            "description": "Second ref to compare against ref_a. Omit for working-tree diff."
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Limit diff to specific file paths."
+          },
+          "stat": {
+            "type": "boolean",
+            "description": "Show only diffstat (insertions/deletions summary) instead of full diff."
+          }
+        }
+      },
+      "executor": "tools/git-diff.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_log",
+      "description": "Show git commit log with configurable format and count. Use when the user asks for recent commits, git log, or commit history.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "count": {
+            "type": "number",
+            "description": "Maximum number of commits to show. Default 20."
+          },
+          "oneline": {
+            "type": "boolean",
+            "description": "Use --oneline format (hash + subject only)."
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch or ref to show log for. Defaults to HEAD."
+          },
+          "author": {
+            "type": "string",
+            "description": "Filter commits by author name/email."
+          },
+          "since": {
+            "type": "string",
+            "description": "Show commits more recent than this date (e.g. '2 weeks ago', '2024-01-01')."
+          }
+        }
+      },
+      "executor": "tools/git-log.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_push",
+      "description": "Push the current (or a named) branch to a remote, setting upstream tracking on first push. Use when the user asks to push commits, publish a branch, or before opening a PR on a branch that has not been pushed yet. WARNING: This updates a remote. The assistant should confirm before pushing, especially when force-pushing.",
+      "category": "git",
+      "risk": "high",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "remote": {
+            "type": "string",
+            "description": "Remote to push to. Default 'origin'."
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch to push. Defaults to the current branch."
+          },
+          "set_upstream": {
+            "type": "boolean",
+            "description": "Set the upstream tracking branch (-u). Default true so first push works."
+          },
+          "force_with_lease": {
+            "type": "boolean",
+            "description": "Force-push using --force-with-lease (safer than --force; refuses if the remote moved unexpectedly). Default false. Never uses a bare --force."
+          }
+        }
+      },
+      "executor": "tools/git-push.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_stash",
+      "description": "Manage the git stash: save, list, apply, pop, or drop stashed changes. Use when the user wants to set aside uncommitted work, restore stashed work, or inspect the stash list.",
+      "category": "git",
+      "risk": "medium",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "save",
+              "list",
+              "apply",
+              "pop",
+              "drop"
+            ],
+            "description": "What to do: save (push) current changes, list stashes, apply/pop a stash (pop also drops it), or drop a stash entry."
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional message for the stash entry (used with 'save')."
+          },
+          "include_untracked": {
+            "type": "boolean",
+            "description": "Include untracked files when saving (-u). Default false."
+          },
+          "ref": {
+            "type": "string",
+            "description": "Stash ref for apply/pop/drop (e.g. 'stash@{1}'). Defaults to the latest stash."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "executor": "tools/git-stash.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "git_status",
+      "description": "Show git working tree status: staged, unstaged, and untracked files. Use when the user asks 'what changed', 'git status', or wants to see the current state of the repo.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "short": {
+            "type": "boolean",
+            "description": "Use --short format (porcelain output)."
+          }
+        }
+      },
+      "executor": "tools/git-status.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_checkout",
+      "description": "Check out a GitHub pull request branch locally using gh CLI. Use when the user wants to test, run, or review a PR's code locally rather than just reading the diff. Requires gh CLI to be authenticated.",
+      "category": "git",
+      "risk": "medium",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "number": {
+            "type": "number",
+            "description": "PR number to check out. Required."
+          },
+          "detach": {
+            "type": "boolean",
+            "description": "Check out in detached HEAD state instead of creating a local branch. Default false."
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "executor": "tools/pr-checkout.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_create",
+      "description": "Create a GitHub pull request using gh CLI. Use when the user asks to open a PR, create a pull request, or submit changes for review. Requires gh CLI to be authenticated. The assistant should confirm title and body with the user before calling.",
+      "category": "git",
+      "risk": "high",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "title": {
+            "type": "string",
+            "description": "PR title. Required."
+          },
+          "body": {
+            "type": "string",
+            "description": "PR description body (markdown). Can be multi-line."
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch to merge into. Defaults to the repo default branch."
+          },
+          "head": {
+            "type": "string",
+            "description": "Head branch to merge from. Defaults to current branch."
+          },
+          "draft": {
+            "type": "boolean",
+            "description": "Create as a draft PR."
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels to apply to the PR."
+          },
+          "reviewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "GitHub usernames to request as reviewers."
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "executor": "tools/pr-create.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_list",
+      "description": "List open pull requests in a GitHub repo using gh CLI. Use when the user asks to see PRs, check what is open, or review pending pull requests.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "merged",
+              "all"
+            ],
+            "description": "PR state to filter by. Default 'open'."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of PRs to return. Default 20."
+          },
+          "author": {
+            "type": "string",
+            "description": "Filter by author (GitHub username or @me for the authenticated user)."
+          },
+          "label": {
+            "type": "string",
+            "description": "Filter by label."
+          }
+        }
+      },
+      "executor": "tools/pr-list.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_merge",
+      "description": "Merge a GitHub pull request using gh CLI. Use when the user asks to merge a PR. WARNING: This is a destructive action that modifies the target branch. The assistant MUST confirm with the user before merging.",
+      "category": "git",
+      "risk": "high",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "number": {
+            "type": "number",
+            "description": "PR number to merge. Required."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "squash",
+              "rebase"
+            ],
+            "description": "Merge method. Default 'squash'."
+          },
+          "delete_branch": {
+            "type": "boolean",
+            "description": "Delete the head branch after merging. Default true."
+          },
+          "admin": {
+            "type": "boolean",
+            "description": "Use admin privileges to merge even if CI checks fail or reviews are pending."
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "executor": "tools/pr-merge.ts",
+      "execution_target": "sandbox"
+    },
+    {
+      "name": "pr_review",
+      "description": "Review a GitHub pull request: fetch the diff, CI status, and review comments. Use when the user asks to review a PR, check CI status, or see what a PR changes.",
+      "category": "git",
+      "risk": "low",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_path": {
+            "type": "string",
+            "description": "Path to the git repository. Defaults to the assistant working directory."
+          },
+          "number": {
+            "type": "number",
+            "description": "PR number to review. Required."
+          },
+          "include_diff": {
+            "type": "boolean",
+            "description": "Include the full diff in the output. Default true."
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "executor": "tools/pr-review.ts",
+      "execution_target": "sandbox"
+    }
+  ]
+}

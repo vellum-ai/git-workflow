@@ -1,31 +1,7 @@
-import type { ToolDefinition } from "@vellumai/plugin-api";
-import { RiskLevel } from "@vellumai/plugin-api";
-import { runGh, formatResult, resolveCwd, ok } from "../src/runner.ts";
+import type { ToolContext, ToolExecutionResult } from "@vellumai/plugin-api";
+import { runGh, formatResult, resolveCwd, ok } from "../../../src/runner.ts";
 
-const prReview: ToolDefinition = {
-  description:
-    "Review a GitHub pull request: fetch the diff, CI status, and review comments. " +
-    "Use when the user asks to review a PR, check CI status, or see what a PR changes.",
-  input_schema: {
-    type: "object",
-    properties: {
-      repo_path: {
-        type: "string",
-        description: "Path to the git repository. Defaults to the assistant working directory.",
-      },
-      number: {
-        type: "number",
-        description: "PR number to review. Required.",
-      },
-      include_diff: {
-        type: "boolean",
-        description: "Include the full diff in the output. Default true.",
-      },
-    },
-    required: ["number"],
-  },
-  defaultRiskLevel: RiskLevel.Low,
-  execute: async (input, ctx) => {
+export async function run(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolExecutionResult> {
     const cwd = resolveCwd(input, ctx.workingDir);
     const num = input.number as number;
 
@@ -66,7 +42,4 @@ const prReview: ToolDefinition = {
 
     const content = `## PR #${num}\n\n\`\`\`json\n${meta}\n\`\`\`\n\n## CI Checks\n\n${checks}${diffSection}`;
     return { content, isError: false };
-  },
-};
-
-export default prReview;
+}

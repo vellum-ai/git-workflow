@@ -1,39 +1,8 @@
-import type { ToolDefinition } from "@vellumai/plugin-api";
-import { RiskLevel } from "@vellumai/plugin-api";
-import { runGh, runGit, formatResult, resolveCwd, ok } from "../src/runner.ts";
-import { summarizeBlame } from "../src/blame.ts";
+import type { ToolContext, ToolExecutionResult } from "@vellumai/plugin-api";
+import { runGh, runGit, formatResult, resolveCwd, ok } from "../../../src/runner.ts";
+import { summarizeBlame } from "../../../src/blame.ts";
 
-const prReviewGather: ToolDefinition = {
-  description:
-    "Gather all context needed for a deep code review of a PR: full diff, " +
-    "CI check status, existing review comments, git blame for changed files, " +
-    "and repo convention/guideline files (AGENTS.md, CLAUDE.md, .cursorrules, CONTRIBUTING.md). " +
-    "Use when the user asks for a code review, wants to review a PR deeply, " +
-    "or when running the code-review workflow.",
-  input_schema: {
-    type: "object",
-    properties: {
-      repo_path: {
-        type: "string",
-        description: "Path to the git repository. Defaults to the assistant working directory.",
-      },
-      number: {
-        type: "number",
-        description: "PR number to review. Required.",
-      },
-      max_diff_chars: {
-        type: "number",
-        description: "Maximum diff size to return (characters). Default 30000. Larger diffs are truncated.",
-      },
-      include_blame: {
-        type: "boolean",
-        description: "Include git blame for changed files. Default true.",
-      },
-    },
-    required: ["number"],
-  },
-  defaultRiskLevel: RiskLevel.Low,
-  execute: async (input, ctx) => {
+export async function run(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolExecutionResult> {
     const cwd = resolveCwd(input, ctx.workingDir);
     const num = input.number as number;
     const maxDiff = (input.max_diff_chars as number) ?? 30000;
@@ -182,7 +151,4 @@ const prReviewGather: ToolDefinition = {
     ];
 
     return { content: sections.join("\n"), isError: false };
-  },
-};
-
-export default prReviewGather;
+}
