@@ -48,9 +48,9 @@ This skill provides structured tools for common git and GitHub operations. The t
 | `pr_review` | Fetch PR metadata, CI status, and diff | low |
 | `pr_checkout` | Check out a PR branch locally | medium |
 | `pr_merge` | Merge a pull request | high |
-| `pr_review_gather` | Deep context gather for code review (diff, blame, CI, conventions) | low |
-| `pr_comment` | Post a comment on a PR | high |
 | `changelog` | Generate changelog from commit history | low |
+
+`pr_review_gather` (deep context gather) and `pr_comment` (post the review) live in the **`code-review`** skill and activate when it loads.
 
 ## Workflow Patterns
 

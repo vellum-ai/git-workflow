@@ -1,35 +1,7 @@
-import type { ToolDefinition } from "@vellumai/plugin-api";
-import { RiskLevel } from "@vellumai/plugin-api";
-import { runGit, formatResult, resolveCwd, ok, assertGitRepo } from "../src/runner.ts";
+import type { ToolContext, ToolExecutionResult } from "@vellumai/plugin-api";
+import { runGit, formatResult, resolveCwd, ok, assertGitRepo } from "../../../src/runner.ts";
 
-const changelog: ToolDefinition = {
-  description:
-    "Generate a changelog from git commit history between two refs. " +
-    "Use when the user asks for release notes, a changelog, or a summary of changes between tags/branches.",
-  input_schema: {
-    type: "object",
-    properties: {
-      repo_path: {
-        type: "string",
-        description: "Path to the git repository. Defaults to the assistant working directory.",
-      },
-      from: {
-        type: "string",
-        description: "Starting ref (tag, branch, commit). Default: previous tag.",
-      },
-      to: {
-        type: "string",
-        description: "Ending ref (tag, branch, commit). Default: HEAD.",
-      },
-      format: {
-        type: "string",
-        enum: ["markdown", "plain", "json"],
-        description: "Output format. Default 'markdown'.",
-      },
-    },
-  },
-  defaultRiskLevel: RiskLevel.Low,
-  execute: async (input, ctx) => {
+export async function run(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolExecutionResult> {
     const cwd = resolveCwd(input, ctx.workingDir);
     const repoErr = await assertGitRepo(cwd, ctx.signal);
     if (repoErr) return { content: repoErr, isError: true };
@@ -107,7 +79,4 @@ const changelog: ToolDefinition = {
     ].join("\n");
 
     return { content: md, isError: false };
-  },
-};
-
-export default changelog;
+}
